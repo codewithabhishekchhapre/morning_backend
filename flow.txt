@@ -1,0 +1,153 @@
+
+
+Api signup
+
+/user/signup
+
+...(req)
+name
+email
+password
+mobile
+
+>> store in your local system []
+
+....(response)
+>> message-> your registration successfully
+>> data -> information
+
+______________________________________________________________________________________
+
+Api login
+
+/user/login
+
+... (req)
+email
+password
+
+>> check in my local data is it exist or not 
+
+...(response)
+>> message-> your are login successfully / email is not register
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const express=require("express")
+const app=express();
+app.use(express.json());                  // For JSON input
+app.use(express.urlencoded({ extended: true })); // For form-data / URL encoded
+
+app.get('/',function(req,res){
+     res.send("server is running successfully")
+})
+
+var users=[]
+
+
+app.post('/user/signup',function(req,res){
+
+     var {username,email,mobile,password}=req.body;
+
+     users.push({username,email,mobile,password})
+
+     console.log(users)
+
+     res.json({
+          "message":"your account created successfully",
+          "data":{
+               username,
+               email,
+               mobile,
+               password
+          }
+     })
+})
+
+
+app.post('/user/login',function(req,res){
+
+     var {email,password}=req.body;
+     var exist=false;
+     var exist_index=-1;
+
+     for(var i=0;i<users.length;i++){
+          var user=users[i]
+
+          if(user.email==email && user.password==password){
+               exist=true;
+               exist_index=i;
+          }
+
+     }
+
+     if(exist==true){
+          res.json({
+               "message":"you are login successfully",
+               "data":users[exist_index]
+          })
+     }
+
+     res.json({
+          "message":"email and password is invalid"
+     })
+
+
+})
+
+
+app.get("/user/all",function(req,res){
+     res.json({
+          "message":"get all user successfully",
+          "data":users,
+          "total_user":users.length
+     })
+})
+
+
+app.listen(5000,function(){
+     console.log("server is running on this url http://localhost:5000")
+})
+
+
+// const http=require('http');
+
+// const server=http.createServer(function(req,res){
+
+//      res.end("Server is running successfully");
+//      // res.end({message:"successfully"})
+// })
+
+// server.listen(5000,function(){
+//      console.log("server is running http://localhost:5000")
+// })
+
+
+
+
+... /send-otp
+
+req => email , otp-type="email/mobile"
+response => {
+     message:"otp send successfully"
+     otp:457965
+}
+
+...  verify-email
+req => otp,email,otp-type="email/mobile"
+res=> {
+     message:"verify successfully"
+}

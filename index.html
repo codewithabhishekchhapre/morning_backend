@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mouse-follow Circle</title>
+  <style>
+    :root{
+      --circle-size: 36px;   /* size of the circle */
+      --circle-color: rgba(59,130,246,0.95); /* blue-ish */
+      --trail-ease: 0.18;    /* lower = snappier, higher = more lag */
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      background:linear-gradient(180deg,#0f172a,#020617);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:#e6edf3;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .page{
+      height:100%;
+      display:grid;
+      place-items:center;
+      user-select:none;
+    }
+
+    .instructions{
+      position:fixed;
+      left:16px;
+      top:16px;
+      background:rgba(255,255,255,0.04);
+      padding:8px 12px;
+      border-radius:8px;
+      font-size:13px;
+      backdrop-filter: blur(6px);
+    }
+
+    /* The circle that follows the mouse */
+    .cursor-circle{
+      position:fixed;
+      left:0;
+      top:0;
+      width:var(--circle-size);
+      height:var(--circle-size);
+      border-radius:50%;
+      background:var(--circle-color);
+      transform: translate(-50%,-50%) scale(1);
+      pointer-events:none; /* so it doesn't block clicks */
+      will-change: transform, opacity;
+      box-shadow: 0 8px 24px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+      transition: transform 180ms cubic-bezier(.2,.9,.3,1), opacity 200ms ease;
+      mix-blend-mode: screen;
+    }
+
+    /* smaller on touch devices by default */
+    @media (hover: none){
+      :root{ --circle-size: 28px; }
+    }
+
+    /* respect reduced motion preference */
+    @media (prefers-reduced-motion: reduce){
+      .cursor-circle{ transition:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Move your mouse — the circle will follow</h1>
+  </div>
+
+  <div class="instructions">Move mouse — click to shrink, release to return</div>
+  <div class="cursor-circle" id="cursor"></div>
+
+  <script>
+    // Simple, reusable mouse-following circle
+    (function(){
+      const circle = document.getElementById('cursor');
+      // position we want to go to (mouse)
+      const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      // current position of the circle
+      const current = { x: target.x, y: target.y };
+
+      // easing factor (how much to follow the target each frame)
+      let ease = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--trail-ease')) || 0.18;
+
+      // Listen to mouse movements
+      window.addEventListener('mousemove', e => {
+        target.x = e.clientX;
+        target.y = e.clientY;
+     //    console.log(e.clientX, e.clientY);
+        // ensure visible
+        circle.style.opacity = '0.2';
+      }, {passive:true});
+
+      // Touch support (use first touch)
+      window.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        if(t){ target.x = t.clientX; target.y = t.clientY; }
+      }, {passive:true});
+      window.addEventListener('touchmove', e => {
+        const t = e.touches[0];
+        if(t){ target.x = t.clientX; target.y = t.clientY; }
+      }, {passive:true});
+
+      // optional interaction: shrink on mousedown
+      window.addEventListener('mousedown', () => {
+        circle.style.transform = 'translate(-50%,-50%) scale(0.6)';
+        circle.style.opacity = '0.95';
+      });
+      window.addEventListener('mouseup', () => {
+        circle.style.transform = 'translate(-50%,-50%) scale(1)';
+      });
+
+      // update loop
+      function raf(){
+        // linear interpolation (lerp) for smooth motion
+        current.x += (target.x - current.x) * ease;
+        current.y += (target.y - current.y) * ease;
+
+        // apply transform (translate centers the circle at the pointer)
+        circle.style.transform = `translate(${current.x}px, ${current.y}px) translate(-50%,-50%)`;
+
+        requestAnimationFrame(raf);
+      }
+
+      // initialize off-screen and start loop
+      circle.style.opacity = '0';
+      requestAnimationFrame(raf);
+
+      // keep the circle on resize
+      window.addEventListener('resize', () => {
+        // keep target inside viewport
+        target.x = Math.min(target.x, window.innerWidth);
+        target.y = Math.min(target.y, window.innerHeight);
+      });
+
+    })();
+  </script>
+</body>
+</html>
