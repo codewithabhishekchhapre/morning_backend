@@ -86,6 +86,20 @@ app.post("/send-otp",async function(req,res){
             res.json({message:'OTP sent successfully to email', otp});
 
         }
+        else{
+            if(!sendBy){
+                return res.json({message:'Mobile number is required to send OTP'});
+            }
+            const user=await User.findOne({mobile:sendBy});
+            if(!user){
+                return res.json({message:'User with this mobile number not found'});
+            }
+            const otp=generateOTP();
+
+            const otpEntry=await Otp.create({sendBy,otp});
+            otpEntry.save();
+            res.json({message:'OTP sent successfully to mobile', otp});
+        }
     }
     catch(err){
         res.json({message:'Server error', error:err.message});
@@ -93,6 +107,40 @@ app.post("/send-otp",async function(req,res){
 
 });
 
+app.post("/verify-otp",async function(req,res){
+    try{
+        const {sendBy,otp,otp_type}=req.body;
+        const otpEntry=await Otp.findOne({sendBy,otp}).sort({createdAt:-1});
+
+        // check otp is expired or not
+        const now=new Date();
+        if(otpEntry && (now - otpEntry.createdAt) > 5*60*1000){
+            return res.json({message:'OTP expired'});
+        }
+
+        if(!otpEntry){
+            return res.json({message:'Invalid OTP'});
+        }
+
+        // delete record after verification
+        await Otp.deleteOne({_id:otpEntry._id});
+
+        // update the user record
+        if(otp_type==="email"){
+            await User.updateOne({email:sendBy},{$set:{isEmailVerified:true}});
+        }
+        else{
+            await User.updateOne({mobile:sendBy},{$set:{isMobileVerified:true}});
+        }
+
+
+        res.json({message:'OTP verified successfully'});
+
+    }
+    catch(err){
+        res.json({message:'Server error', error:err.message});
+    }
+});
 
 
 
